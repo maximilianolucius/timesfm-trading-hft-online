@@ -1,0 +1,101 @@
+paths:
+  data_dir: data
+  workdir: workdir/eurusd_d1
+  logs_dir: logs
+
+task:
+  name: eurusd_d1
+  symbol: EURUSD
+  timeframe: D1
+  context_len: 256
+  horizon_len: 5
+  target: close
+  features: [open, high, low, close, volume]
+
+data:
+  train_csv: data/eurusd_d1.csv
+  frequency: 1D
+  timezone: UTC
+  normalize: true
+  expect_no_gaps: true
+  resample: null
+
+prep:
+  validation_split: 0.1
+  shuffle_before_split: false
+  dropna: true
+  fillna_method: ffill
+
+training:
+  base_checkpoint: checkpoints/timesfm-base
+  device: cuda
+  optimizer: adamw
+  learning_rate: 3.0e-05
+  weight_decay: 1.0e-04
+  epochs: 40
+  batch_size: 16
+  gradient_clip: 1.0
+  scheduler: cosine
+  warmup_steps: 50
+  patience: 6
+  mixed_precision: true
+  seed: 7
+  num_workers: 2
+  save_best_k: 3
+  quantiles: [0.1, 0.5, 0.9]
+  bootstrap_samples: 20
+  bootstrap_ratio: 0.7
+  checkpoint_dir: workdir/eurusd_d1
+  log_dir: logs
+
+backtest:
+  walkforward:
+    n_splits: 5
+    min_train_size: 1200
+    test_size: 60
+    gap: 5
+    step_size: null
+    max_splits: null
+  cost_bps: 1
+  edge_bps: 5
+  risk_per_trade: 1.0
+  atr_lookback: 20
+  output_dir: workdir/backtests/eurusd_d1
+  coverage_threshold: 0.65
+
+serve:
+  host: 127.0.0.1
+  port: 8000
+  models:
+    - symbol: EURUSD
+      timeframe: D1
+      horizon_len: 5
+      checkpoint: workdir/eurusd_d1/timesfm-ft-epoch12.pt
+      config_path: configs/fx_1d.yaml
+
+trade:
+  api_url: http://127.0.0.1:8000
+  poll_seconds: 3600
+  risk_percent: 0.5
+  atr_lookback: 20
+  size_min_lots: 0.1
+  magic_number: 430001
+  symbol: EURUSD
+  timeframe: D1
+  horizon_len: 5
+  cost_bps: 1
+  kill_switch:
+    coverage_min: 0.6
+    lookback: 100
+    calendar_blackout: []
+  symbol_map_path: configs/symbols_map.example.yaml
+  coverage_threshold: 0.65
+  max_position_lots: 10.0
+
+mt5:
+  enabled: true
+  login: ${MT5_LOGIN}
+  password: ${MT5_PASSWORD}
+  server: ${MT5_SERVER}
+  path: ${MT5_PATH}
+  timeout: 15

@@ -1,0 +1,79 @@
+paths:
+  data_dir: data
+  workdir: workdir/xauusd_m5
+  logs_dir: logs
+
+task:
+  name: xauusd_m5
+  symbol: XAUUSD
+  timeframe: M5
+  context_len: 512
+  horizon_len: 12
+  target: close
+  features: [open, high, low, close, volume]
+
+data:
+  train_csv: data/xauusd_m5.csv
+  frequency: 5min
+  timezone: UTC
+  normalize: true
+  expect_no_gaps: true
+
+training:
+  base_checkpoint: checkpoints/timesfm-base
+  device: cuda
+  optimizer: adamw
+  learning_rate: 5.0e-05
+  weight_decay: 1.0e-04
+  epochs: 30
+  batch_size: 32
+  gradient_clip: 1.0
+  scheduler: cosine
+  warmup_steps: 100
+  patience: 5
+  mixed_precision: true
+  seed: 42
+  num_workers: 2
+  save_best_k: 3
+  quantiles: [0.1, 0.5, 0.9]
+  bootstrap_samples: 30
+  bootstrap_ratio: 0.7
+  checkpoint_dir: workdir/xauusd_m5
+  log_dir: logs
+
+serve:
+  host: 0.0.0.0
+  port: 8000
+  models:
+    - symbol: XAUUSD
+      timeframe: M5
+      horizon_len: 12
+      checkpoint: workdir/xauusd_m5/timesfm-ft-epoch10.pt
+      config_path: configs/xau_5m.yaml
+
+trade:
+  api_url: http://127.0.0.1:8000
+  poll_seconds: 60
+  risk_percent: 1.0
+  atr_lookback: 14
+  size_min_lots: 0.1
+  magic_number: 420001
+  symbol: XAUUSD
+  timeframe: M5
+  horizon_len: 12
+  cost_bps: 5
+  kill_switch:
+    coverage_min: 0.55
+    lookback: 150
+    calendar_blackout: []
+  symbol_map_path: configs/symbols_map.example.yaml
+  coverage_threshold: 0.6
+  max_position_lots: 5.0
+
+mt5:
+  enabled: true
+  login: ${MT5_LOGIN}
+  password: ${MT5_PASSWORD}
+  server: ${MT5_SERVER}
+  path: ${MT5_PATH}
+  timeout: 15

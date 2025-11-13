@@ -1,0 +1,6 @@
+# Logical symbol to broker-specific symbol overrides
+XAUUSD: XAUUSD
+EURUSD: EURUSD
+GBPUSD: GBPUSD
+USDJPY: USDJPY
+AUDUSD: AUDUSD
